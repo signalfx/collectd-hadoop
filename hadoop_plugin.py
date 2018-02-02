@@ -1,7 +1,4 @@
-try:
-    import collectd
-except ImportError:
-    import dummy_collectd as collectd
+import collectd
 import metrics
 import urllib2
 import json
@@ -375,8 +372,6 @@ def configure_callback(conf):
     exclude = set()
     interval = None
     custom_dimensions = {}
-
-    required_keys = frozenset(('ResourceManagerURL', 'ResourceManagerPort'))
 
     for node in conf.children:
         if node.key == 'ResourceManagerURL' and node.values[0]:

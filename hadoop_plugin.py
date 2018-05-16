@@ -99,7 +99,7 @@ class MetricSink(object):
         emit_value.values = [metric_record.value]
         emit_value.type = metric_record.type
         emit_value.type_instance = metric_record.name
-        emit_value.plugin_instance = '[{0}]'.format(
+        emit_value.plugin_instance = '{0}'.format(
             self._format_dimensions(metric_record.dimensions))
 
         # With some versions of CollectD, a dummy metadata map must to be added

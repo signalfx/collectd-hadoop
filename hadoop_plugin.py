@@ -408,55 +408,52 @@ def configure_callback(conf):
         collectd.error("hadoop : Resource Manager URL and Resource Manager Port required for Hadoop Plugin")
         return
 
+    configurations = {
+        'resource_manager_url': resource_manager_url,
+        'resource_manager_port': resource_manager_port,
+        'excluded_metrics': exclude,
+        'custom_dimensions': custom_dimensions,
+        'verbose': verbose,
+    }
+
+    globalCallbackOpts = {}
+    if interval is not None:
+        globalCallbackOpts["interval"] = interval
+
     clusterMetrics = ClusterMetricCollector(
-        resource_manager_url=resource_manager_url,
-        resource_manager_port=resource_manager_port,
-        excluded_metrics=exclude,
-        custom_dimensions=custom_dimensions,
-        verbose=verbose,
+        **configurations
     )
-    collectd.register_read(clusterMetrics.read_callback, interval=interval,
-                           name='hadoop-cluster-metrics-'+resource_manager_url+resource_manager_port)
+    callbackOpts = {'name': 'hadoop-cluster-metrics-'+resource_manager_url+resource_manager_port}
+    callbackOpts.update(globalCallbackOpts)
+    collectd.register_read(clusterMetrics.read_callback, **callbackOpts)
 
     nodeMetrics = NodeMetricCollector(
-        resource_manager_url=resource_manager_url,
-        resource_manager_port=resource_manager_port,
-        excluded_metrics=exclude,
-        custom_dimensions=custom_dimensions,
-        verbose=verbose,
+        **configurations
     )
-    collectd.register_read(nodeMetrics.read_callback, interval=interval,
-                           name='hadoop-node-metrics-'+resource_manager_url+resource_manager_port)
+    callbackOpts = {'name': 'hadoop-node-metrics-'+resource_manager_url+resource_manager_port}
+    callbackOpts.update(globalCallbackOpts)
+    collectd.register_read(nodeMetrics.read_callback, **callbackOpts)
 
     appMetrics = AppMetricCollector(
-        resource_manager_url=resource_manager_url,
-        resource_manager_port=resource_manager_port,
-        excluded_metrics=exclude,
-        custom_dimensions=custom_dimensions,
-        verbose=verbose,
+        **configurations
     )
-    collectd.register_read(appMetrics.read_callback, interval=interval,
-                           name='hadoop-app-metrics-'+resource_manager_url+resource_manager_port)
+    callbackOpts = {'name': 'hadoop-app-metrics-'+resource_manager_url+resource_manager_port}
+    callbackOpts.update(globalCallbackOpts)
+    collectd.register_read(appMetrics.read_callback, **callbackOpts)
 
     mapreduceMetrics = MapreduceAppMetricCollector(
-        resource_manager_url=resource_manager_url,
-        resource_manager_port=resource_manager_port,
-        excluded_metrics=exclude,
-        custom_dimensions=custom_dimensions,
-        verbose=verbose,
+        **configurations
     )
-    collectd.register_read(mapreduceMetrics.read_callback, interval=interval,
-                           name='hadoop-mapreduce-metrics-'+resource_manager_url+resource_manager_port)
+    callbackOpts = {'name': 'hadoop-mapreduce-metrics-'+resource_manager_url+resource_manager_port}
+    callbackOpts.update(globalCallbackOpts)
+    collectd.register_read(mapreduceMetrics.read_callback, **callbackOpts)
 
     schedulerMetrics = SchedulerMetricCollector(
-        resource_manager_url=resource_manager_url,
-        resource_manager_port=resource_manager_port,
-        excluded_metrics=exclude,
-        custom_dimensions=custom_dimensions,
-        verbose=verbose,
+        **configurations
     )
-    collectd.register_read(schedulerMetrics.read_callback, interval=interval,
-                           name='hadoop-scheduler-metrics-'+resource_manager_url+resource_manager_port)
+    callbackOpts = {'name': 'hadoop-scheduler-metrics-'+resource_manager_url+resource_manager_port}
+    callbackOpts.update(globalCallbackOpts)
+    collectd.register_read(schedulerMetrics.read_callback, **callbackOpts)
 
 
 collectd.register_config(configure_callback)

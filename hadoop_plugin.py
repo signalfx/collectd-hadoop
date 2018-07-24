@@ -16,22 +16,6 @@ MAPREDUCE_JOBS_PATH = 'jobs'
 MAPREDUCE_APP_TYPE = 'MAPREDUCE'
 
 
-def str_to_bool(value):
-    """Python 2.x does not have a casting mechanism for booleans.  The built in
-    bool() will return true for any string with a length greater than 0.  It
-    does not cast a string with the text "true" or "false" to the
-    corresponding bool value.  This method is a casting function.  It is
-    insensitive to case and leading/trailing spaces.  An Exception is raised
-    if a cast can not be made.
-    """
-    if str(value).strip().lower() == "true":
-        return True
-    elif str(value).strip().lower() == "false":
-        return False
-    else:
-        raise Exception("Unable to cast value ({0}) to boolean".format(value))
-
-
 def _validate_url(url):
     return url.startswith("http://")
 
@@ -379,7 +363,7 @@ def configure_callback(conf):
         elif node.key == 'ExcludeMetrics' and node.values:
             _add_metrics_to_set(exclude, node.values[0])
         elif node.key == "Verbose" and node.values:
-            verbose = str_to_bool(node.values[0])
+            verbose = node.values[0]
         else:
             collectd.warning("hadoop : Unknown or Malformed configuration setting {0}".format(node))
 

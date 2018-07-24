@@ -98,7 +98,7 @@ class MetricSink(object):
                         for key, value in dimensions.iteritems()])
 
 
-class HadoopCollector():
+class HadoopCollector(object):
     def __init__(self, resource_manager_url, resource_manager_port,
                  excluded_metrics, custom_dimensions, verbose=False):
         self.metric_sink = MetricSink()
@@ -107,7 +107,6 @@ class HadoopCollector():
         self.excluded_metrics = excluded_metrics
         self.custom_dimensions = custom_dimensions
         self.verbose = verbose
-        collectd.info("hadoop : Successfully configured Hadoop Collector ...")
 
     def log_verbose(self, msg):
         """
@@ -163,23 +162,21 @@ class HadoopCollector():
         except Exception:
             return None
 
-    def read_callback(self):
-        """
-        Makes API calls for cluster metrics
-        and posts them to SignalFx
-        """
-        rm_url = self.resource_manager_url+":"+self.resource_manager_port
-        self.get_cluster_metrics(rm_url)
-        self.get_scheduler_metrics(rm_url)
-        self.get_apps_metrics(rm_url)
-        self.get_node_metrics(rm_url)
-        self.get_mapreduce_metrics(rm_url)
 
-    def get_cluster_metrics(self, rm_url):
+class ClusterMetricCollector(HadoopCollector):
+
+    def __init__(self, resource_manager_url, resource_manager_port,
+                 excluded_metrics, custom_dimensions, verbose=False):
+        HadoopCollector.__init__(self, resource_manager_url, resource_manager_port,
+                                 excluded_metrics, custom_dimensions, verbose)
+        self.log_verbose("hadoop : Successfully configured Hadoop Cluster Metric Collector ...")
+
+    def read_callback(self):
         """
         Collects metrics about the cluster from
         <host>/ws/v1/cluster/metrics
         """
+        rm_url = self.resource_manager_url+":"+self.resource_manager_port
         dim = {}
         dim.update(self.custom_dimensions)
 
@@ -194,11 +191,21 @@ class HadoopCollector():
                 if key in cluster_metric and metric_name not in self.excluded_metrics:
                     self.metric_sink.emit(MetricRecord(metric_name, metric_type, cm_value, dim))
 
-    def get_node_metrics(self, rm_url):
+
+class NodeMetricCollector(HadoopCollector):
+
+    def __init__(self, resource_manager_url, resource_manager_port,
+                 excluded_metrics, custom_dimensions, verbose=False):
+        HadoopCollector.__init__(self, resource_manager_url, resource_manager_port,
+                                 excluded_metrics, custom_dimensions, verbose)
+        self.log_verbose("hadoop : Successfully configured Hadoop Node Metric Collector ...")
+
+    def read_callback(self):
         """
         Collects metrics about nodes from
         <host>/ws/v1/cluster/nodes
         """
+        rm_url = self.resource_manager_url+":"+self.resource_manager_port
         nodes_resp = self.get_json_from_rest_request(rm_url, RESOURCE_MANAGER_ENDPOINT, CLUSTER_NODES_PATH)
 
         nodes = (nodes_resp.get('nodes') or {}).get('node') or []
@@ -212,11 +219,21 @@ class HadoopCollector():
                 if key in node and metric_name not in self.excluded_metrics:
                     self.metric_sink.emit(MetricRecord(metric_name, metric_type, node.get(key), dim))
 
-    def get_apps_metrics(self, rm_url):
+
+class AppMetricCollector(HadoopCollector):
+
+    def __init__(self, resource_manager_url, resource_manager_port,
+                 excluded_metrics, custom_dimensions, verbose=False):
+        HadoopCollector.__init__(self, resource_manager_url, resource_manager_port,
+                                 excluded_metrics, custom_dimensions, verbose)
+        self.log_verbose("hadoop : Successfully configured Hadoop App Metric Collector ...")
+
+    def read_callback(self):
         """
         Collects metrics about apps from
         <host>/ws/v1/cluster/apps
         """
+        rm_url = self.resource_manager_url+":"+self.resource_manager_port
         apps_resp = self.get_json_from_rest_request(rm_url, RESOURCE_MANAGER_ENDPOINT, CLUSTER_APPS_PATH,
                                                     states="accepted,running")
 
@@ -232,10 +249,20 @@ class HadoopCollector():
                 if key in app and metric_name not in self.excluded_metrics:
                     self.metric_sink.emit(MetricRecord(metric_name, metric_type, app.get(key), dim))
 
-    def get_mapreduce_metrics(self, rm_url):
+
+class MapreduceAppMetricCollector(HadoopCollector):
+
+    def __init__(self, resource_manager_url, resource_manager_port,
+                 excluded_metrics, custom_dimensions, verbose=False):
+        HadoopCollector.__init__(self, resource_manager_url, resource_manager_port,
+                                 excluded_metrics, custom_dimensions, verbose)
+        self.log_verbose("hadoop : Successfully configured Hadoop Mapreduce Metric Collector ...")
+
+    def read_callback(self):
         """
         Collects metrics about mapreduce jobs
         """
+        rm_url = self.resource_manager_url+":"+self.resource_manager_port
         running_apps = self.get_running_mapreduce_apps(rm_url)
         jobs_metrics = self.get_jobs_from_apps(running_apps)
         return jobs_metrics
@@ -284,7 +311,16 @@ class HadoopCollector():
                     if key in job and metric_name not in self.excluded_metrics:
                         self.metric_sink.emit(MetricRecord(metric_name, metric_type, job.get(key), dim))
 
-    def get_scheduler_metrics(self, rm_url):
+
+class SchedulerMetricCollector(HadoopCollector):
+
+    def __init__(self, resource_manager_url, resource_manager_port,
+                 excluded_metrics, custom_dimensions, verbose=False):
+        HadoopCollector.__init__(self, resource_manager_url, resource_manager_port,
+                                 excluded_metrics, custom_dimensions, verbose)
+        self.log_verbose("hadoop : Successfully configured Hadoop Scheduler Metric Collector ...")
+
+    def read_callback(self):
         """
         Collects metrics about the cluster from
         <host>/ws/v1/cluster/scheduler
@@ -322,6 +358,7 @@ class HadoopCollector():
                     if key in cluster_metric and metric_name not in self.excluded_metrics:
                         self.metric_sink.emit(MetricRecord(metric_name, metric_type, cm_value, dim))
 
+        rm_url = self.resource_manager_url+":"+self.resource_manager_port
         scheduler_resp = self.get_json_from_rest_request(rm_url, RESOURCE_MANAGER_ENDPOINT, CLUSTER_SCHEDULER_PATH)
 
         queues = (scheduler_resp.get('scheduler') or {}).get('schedulerInfo') or {}
@@ -371,16 +408,55 @@ def configure_callback(conf):
         collectd.error("hadoop : Resource Manager URL and Resource Manager Port required for Hadoop Plugin")
         return
 
-    collector = HadoopCollector(
+    clusterMetrics = ClusterMetricCollector(
         resource_manager_url=resource_manager_url,
         resource_manager_port=resource_manager_port,
         excluded_metrics=exclude,
         custom_dimensions=custom_dimensions,
         verbose=verbose,
     )
+    collectd.register_read(clusterMetrics.read_callback, interval=interval,
+                           name='hadoop-cluster-metrics-'+resource_manager_url+resource_manager_port)
 
-    collectd.register_read(collector.read_callback, interval=interval,
-                           name='hadoop-'+resource_manager_url+resource_manager_port)
+    nodeMetrics = NodeMetricCollector(
+        resource_manager_url=resource_manager_url,
+        resource_manager_port=resource_manager_port,
+        excluded_metrics=exclude,
+        custom_dimensions=custom_dimensions,
+        verbose=verbose,
+    )
+    collectd.register_read(nodeMetrics.read_callback, interval=interval,
+                           name='hadoop-node-metrics-'+resource_manager_url+resource_manager_port)
+
+    appMetrics = AppMetricCollector(
+        resource_manager_url=resource_manager_url,
+        resource_manager_port=resource_manager_port,
+        excluded_metrics=exclude,
+        custom_dimensions=custom_dimensions,
+        verbose=verbose,
+    )
+    collectd.register_read(appMetrics.read_callback, interval=interval,
+                           name='hadoop-app-metrics-'+resource_manager_url+resource_manager_port)
+
+    mapreduceMetrics = MapreduceAppMetricCollector(
+        resource_manager_url=resource_manager_url,
+        resource_manager_port=resource_manager_port,
+        excluded_metrics=exclude,
+        custom_dimensions=custom_dimensions,
+        verbose=verbose,
+    )
+    collectd.register_read(mapreduceMetrics.read_callback, interval=interval,
+                           name='hadoop-mapreduce-metrics-'+resource_manager_url+resource_manager_port)
+
+    schedulerMetrics = SchedulerMetricCollector(
+        resource_manager_url=resource_manager_url,
+        resource_manager_port=resource_manager_port,
+        excluded_metrics=exclude,
+        custom_dimensions=custom_dimensions,
+        verbose=verbose,
+    )
+    collectd.register_read(schedulerMetrics.read_callback, interval=interval,
+                           name='hadoop-scheduler-metrics-'+resource_manager_url+resource_manager_port)
 
 
 collectd.register_config(configure_callback)

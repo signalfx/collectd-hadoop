@@ -29,7 +29,7 @@ def str_to_bool(value):
     elif str(value).strip().lower() == "false":
         return False
     else:
-        raise Exception("Unable to cast value (%s) to boolean" % value)
+        raise Exception("Unable to cast value ({0}) to boolean".format(value))
 
 
 def _validate_url(url):
@@ -64,11 +64,11 @@ class MetricRecord(object):
     TO_STRING_FORMAT = '[name={},type={},value={},dimensions={}]'
 
     def __init__(self, metric_name, metric_type, value,
-                 dimensions={}):
+                 dimensions=None):
         self.name = metric_name
         self.type = metric_type
         self.value = value
-        self.dimensions = dimensions
+        self.dimensions = dimensions or {}
 
     def to_string(self):
         return MetricRecord.TO_STRING_FORMAT.format(self.name,
@@ -172,7 +172,7 @@ class HadoopCollector():
             return resp
         except (urllib2.HTTPError, urllib2.URLError) as e:
             if not (isinstance(e, urllib2.HTTPError) and e.code == 404):
-                collectd.warning("hadoop : Unable to make request at (%s) %s" % (e, url))
+                collectd.warning("hadoop : Unable to make request at ({0}) {1}".format(e, url))
             return None
         # TODO: figure out what other specific exceptions should be caught
         # and remove the generic exception
@@ -200,10 +200,12 @@ class HadoopCollector():
         dim.update(self.custom_dimensions)
 
         rm_resp = self.get_json_from_rest_request(rm_url, RESOURCE_MANAGER_ENDPOINT, CLUSTER_METRICS_PATH)
-        if not rm_resp:
+
+        cluster_metrics = rm_resp.get('clusterMetrics') or {}
+        if not cluster_metrics:
             self.log_verbose("no cluster metrics found {0}".format(rm_resp))
 
-        for cluster_metric, cm_value in rm_resp.get('clusterMetrics', {}).iteritems():
+        for cluster_metric, cm_value in cluster_metrics.iteritems():
             for key, (metric_type, metric_name) in metrics.HADOOP_CLUSTER_METRICS.iteritems():
                 if key in cluster_metric and metric_name not in self.excluded_metrics:
                     self.metric_sink.emit(MetricRecord(metric_name, metric_type, cm_value, dim))
@@ -215,7 +217,7 @@ class HadoopCollector():
         """
         nodes_resp = self.get_json_from_rest_request(rm_url, RESOURCE_MANAGER_ENDPOINT, CLUSTER_NODES_PATH)
 
-        nodes = nodes_resp.get('nodes', {}).get('node', [])
+        nodes = (nodes_resp.get('nodes') or {}).get('node') or []
         if not nodes:
             self.log_verbose("no nodes returned {0}".format(nodes_resp))
 
@@ -234,7 +236,7 @@ class HadoopCollector():
         apps_resp = self.get_json_from_rest_request(rm_url, RESOURCE_MANAGER_ENDPOINT, CLUSTER_APPS_PATH,
                                                     states="accepted,running")
 
-        apps = apps_resp.get('apps', {}).get('app', [])
+        apps = (apps_resp.get('apps') or {}).get('app') or []
         if not apps:
             self.log_verbose("no apps returned {0}".format(apps_resp))
 
@@ -263,7 +265,7 @@ class HadoopCollector():
         apps_resp = self.get_json_from_rest_request(rm_url, RESOURCE_MANAGER_ENDPOINT, CLUSTER_APPS_PATH,
                                                     states="running", applicationTypes=MAPREDUCE_APP_TYPE)
 
-        apps = apps_resp.get('apps', {}).get('app', [])
+        apps = (apps_resp.get('apps') or {}).get('app') or []
         if not apps:
             self.log_verbose("no mapreduce apps returned {0}".format(apps_resp))
 
@@ -285,7 +287,7 @@ class HadoopCollector():
         for app_id, (app_name, trackingUrl) in running_apps.iteritems():
             jobs_resp = self.get_json_from_rest_request(trackingUrl, MAPREDUCE_PATH, MAPREDUCE_JOBS_PATH)
 
-            jobs = jobs_resp.get('jobs', {}).get('job', [])
+            jobs = (jobs_resp.get('jobs') or {}).get('job') or []
             if not jobs:
                 self.log_verbose("no jobs returned {0}".format(jobs_resp))
 
@@ -305,7 +307,8 @@ class HadoopCollector():
         """
         def get_queue_metrics(queue):
             # recursively collect queue metrics from all sub-queues
-            for sub_queue in queue.get('queues', {}).get('queue', []):
+            queues = (queue.get('queues') or {}).get('queue') or []
+            for sub_queue in queues:
                 get_queue_metrics(sub_queue)
 
             # initialize dimensions with custom dimensions
@@ -337,7 +340,7 @@ class HadoopCollector():
 
         scheduler_resp = self.get_json_from_rest_request(rm_url, RESOURCE_MANAGER_ENDPOINT, CLUSTER_SCHEDULER_PATH)
 
-        queues = scheduler_resp.get('scheduler', {}).get('schedulerInfo', {})
+        queues = (scheduler_resp.get('scheduler') or {}).get('schedulerInfo') or {}
         if not queues:
             self.log_verbose("no queues returned {0}".format(scheduler_resp))
 
@@ -372,8 +375,7 @@ def configure_callback(conf):
             if len(node.values) == 2:
                 custom_dimensions.update({node.values[0]: node.values[1]})
             else:
-                collectd.warning("hadoop : Check configuration \
-                                            setting for %s" % node.key)
+                collectd.warning("hadoop : Check configuration setting for {0}".format(node.key))
         elif node.key == 'ExcludeMetrics' and node.values:
             _add_metrics_to_set(exclude, node.values[0])
         elif node.key == "Verbose" and node.values:

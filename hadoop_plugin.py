@@ -123,7 +123,7 @@ class HadoopCollector(object):
         resp = None
         resp = self.rest_request(url, path, *args, **kwargs)
         if not resp:
-            collectd.log_verbose("empty json response from API call {0}/{1}".format(
+            self.log_verbose("empty json response from API call {0}/{1}".format(
                                  url, path))
             return {}
 

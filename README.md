@@ -86,6 +86,7 @@ Using the example configuration file [10-hadoop.conf](https://github.com/signalf
 | ExcludeMetrics  | An individual metric name to be excluded | "hadoop.cluster.metrics.allocated_mb" |
 | Interval | How often this plugin will emit metrics, in second | 10 |
 | Dimension | A custom dimension to add to the metrics | Key Value |
+| Verbose | Enable verbose logging | true |
 
 \* denotes required configuration option.
 

@@ -1,9 +1,9 @@
 import collectd
 import metrics
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import json
 
-from urlparse import urljoin
+from urllib.parse import urljoin
 
 PLUGIN_NAME = "apache_hadoop"
 RESOURCE_MANAGER_ENDPOINT = 'ws/v1/cluster'
@@ -95,7 +95,7 @@ class MetricSink(object):
         Taken from docker-collectd-plugin.
         """
         return ','.join(['='.join((key.replace('.', '_'), value))
-                        for key, value in dimensions.iteritems()])
+                        for key, value in dimensions.items()])
 
 
 class HadoopCollector(object):
@@ -145,16 +145,16 @@ class HadoopCollector(object):
 
         if kwargs:
             query = '&'.join(['{0}={1}'.format(key, value)
-                             for key, value in kwargs.iteritems()])
+                             for key, value in kwargs.items()])
             url = urljoin(url, '?' + query)
 
         try:
-            req = urllib2.Request(url)
-            data = urllib2.urlopen(req)
+            req = urllib.request.Request(url)
+            data = urllib.request.urlopen(req)
             resp = data.read()
             return resp
-        except (urllib2.HTTPError, urllib2.URLError) as e:
-            if not (isinstance(e, urllib2.HTTPError) and e.code == 404):
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            if not (isinstance(e, urllib.error.HTTPError) and e.code == 404):
                 collectd.warning("hadoop : Unable to make request at ({0}) {1}".format(e, url))
             return None
         # TODO: figure out what other specific exceptions should be caught
@@ -186,8 +186,8 @@ class ClusterMetricCollector(HadoopCollector):
         if not cluster_metrics:
             self.log_verbose("no cluster metrics found {0}".format(rm_resp))
 
-        for cluster_metric, cm_value in cluster_metrics.iteritems():
-            for key, (metric_type, metric_name) in metrics.HADOOP_CLUSTER_METRICS.iteritems():
+        for cluster_metric, cm_value in cluster_metrics.items():
+            for key, (metric_type, metric_name) in metrics.HADOOP_CLUSTER_METRICS.items():
                 if key in cluster_metric and metric_name not in self.excluded_metrics:
                     self.metric_sink.emit(MetricRecord(metric_name, metric_type, cm_value, dim))
 
@@ -215,7 +215,7 @@ class NodeMetricCollector(HadoopCollector):
         for node in nodes:
             dim = {"node_rack": node.get('rack'), "state": node.get('state'), "node_id": node.get('id')}
             dim.update(self.custom_dimensions)
-            for key, (metric_type, metric_name) in metrics.HADOOP_NODE_METRICS.iteritems():
+            for key, (metric_type, metric_name) in metrics.HADOOP_NODE_METRICS.items():
                 if key in node and metric_name not in self.excluded_metrics:
                     self.metric_sink.emit(MetricRecord(metric_name, metric_type, node.get(key), dim))
 
@@ -245,7 +245,7 @@ class AppMetricCollector(HadoopCollector):
             dim = {"app_name": app.get('name'), "queue_name": app.get('queue'), "user": app.get('user'),
                    "applicationType": app.get('applicationType')}
             dim.update(self.custom_dimensions)
-            for key, (metric_type, metric_name) in metrics.HADOOP_APPLICATIONS.iteritems():
+            for key, (metric_type, metric_name) in metrics.HADOOP_APPLICATIONS.items():
                 if key in app and metric_name not in self.excluded_metrics:
                     self.metric_sink.emit(MetricRecord(metric_name, metric_type, app.get(key), dim))
 
@@ -295,7 +295,7 @@ class MapreduceAppMetricCollector(HadoopCollector):
         Collects metrics about the cluster from
         <host>/ws/v1/mapreduce/jobs
         """
-        for app_id, (app_name, trackingUrl) in running_apps.iteritems():
+        for app_id, (app_name, trackingUrl) in running_apps.items():
             jobs_resp = self.get_json_from_rest_request(trackingUrl, MAPREDUCE_PATH, MAPREDUCE_JOBS_PATH)
 
             jobs = (jobs_resp.get('jobs') or {}).get('job') or []
@@ -307,7 +307,7 @@ class MapreduceAppMetricCollector(HadoopCollector):
                        "app_id": app_id, "app_name": app_name}
                 dim.update(self.custom_dimensions)
 
-                for key, (metric_type, metric_name) in metrics.MAPREDUCE_JOB_METRICS.iteritems():
+                for key, (metric_type, metric_name) in metrics.MAPREDUCE_JOB_METRICS.items():
                     if key in job and metric_name not in self.excluded_metrics:
                         self.metric_sink.emit(MetricRecord(metric_name, metric_type, job.get(key), dim))
 
@@ -353,8 +353,8 @@ class SchedulerMetricCollector(HadoopCollector):
                 dim.update({"queue_name": (queue.get('queueName')), "queue_state": (queue.get('state')),
                             "queue_type": 'capacitySchedulerLeafQueueInfo'})
 
-            for cluster_metric, cm_value in queue.iteritems():
-                for key, (metric_type, metric_name) in queue_metric.iteritems():
+            for cluster_metric, cm_value in queue.items():
+                for key, (metric_type, metric_name) in queue_metric.items():
                     if key in cluster_metric and metric_name not in self.excluded_metrics:
                         self.metric_sink.emit(MetricRecord(metric_name, metric_type, cm_value, dim))
 

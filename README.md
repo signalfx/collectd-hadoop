@@ -59,7 +59,7 @@ This plugin requires:
 |-------------------|----------------|
 | collectd          |     4.9+       |
 | Python plugin for collectd | (included with SignalFx collectd) |
-| Python            |     2.6+       |
+| Python            |     3+         |
 | Apache Hadoop     |     2.0+       |
 
 ### INSTALLATION

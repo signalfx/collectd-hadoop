@@ -1,6 +1,5 @@
 # ![](./img/Hadoop_logo.png) Apache Hadoop  
 
-
 An Apache Hadoop collectd plugin which users can use to send metrics from Hadoop clusters to SignalFx
 
 - [Description](#description)
@@ -8,6 +7,8 @@ An Apache Hadoop collectd plugin which users can use to send metrics from Hadoop
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [License](#license)
+
+>ℹ️&nbsp;&nbsp;SignalFx was acquired by Splunk in October 2019. See [Splunk SignalFx](https://www.splunk.com/en_us/investor-relations/acquisitions/signalfx.html) for more information.
 
 ### DESCRIPTION
 

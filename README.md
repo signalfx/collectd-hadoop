@@ -1,3 +1,7 @@
+> # :warning: End of Support (EoS) Notice
+> 
+> This plugin is deprecated and no longer maintained.
+
 # ![](./img/Hadoop_logo.png) Apache Hadoop  
 
 An Apache Hadoop collectd plugin which users can use to send metrics from Hadoop clusters to SignalFx
